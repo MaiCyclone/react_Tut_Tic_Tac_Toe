@@ -1,79 +1,77 @@
-import React from 'react';
-import ReactDOM from 'react-dom';
-import './index.css';
+import React from "react";
+import ReactDOM from "react-dom";
+import "./index.css";
+import App from "./App";
+import * as serviceWorker from "./serviceWorker";
 
-/*
-class Square extends React.Component {
-  render() {
-    return (
-      <button className="square"
-      onClick={ () => this.props.onClick() }>
-        { this.props.value }
-      </button>
-    );
-  }
-}
-*/
+ReactDOM.render(<App />, document.getElementById("root"));
+
+// If you want your app to work offline and load faster, you can change
+// unregister() to register() below. Note this comes with some pitfalls.
+// Learn more about service workers: https://bit.ly/CRA-PWA
+serviceWorker.unregister();
+
+// class Square extends React.Component {
+//   //constructor(props) {
+//   //super(props);
+//   //this.state = {
+//   //value: null
+//   //};
+//   //}
+
+//   render() {
+//     return (
+//       <button
+//         className="square"
+//         onClick={() => {
+//           this.props.onClick();
+//         }}
+//       >
+//         {this.props.value}
+//       </button>
+//     ); // set object = to its 'value'
+//   }
+// }
 
 function Square(props) {
-    return (
-        <button className = "square" onClick = {props.onClick}>
-            {props.value}
-        </button>
-    );
+  return (
+    <button className="square" onClick={props.onClick}>
+      {props.value}
+    </button>
+  );
 }
 
-
-// replace square class with a function component
-// pure component, a function component is a simpler way to write a component with just
-// a render method and don't have their own state
-
-// render function returns square which on click, returns the props (the board)'s onClick function
-// defined in renderSquare in Board
-// this.props.value in render() returns the props (super class or board)'s value that should be returned
-
-
 class Board extends React.Component {
-    constructor(props) {
-        super(props);
-        this.state = {
-            squares: Array(9).fill(null), // empty array of size 9
-            xIsNext: true,
-        };
-    }
-
-  handleClick(i) {
-    const squares = this.state.squares.slice();
-    const winner = calculateWinner(squares);
-
-    if (winner) { return; }
-    squares[i] = this.state.xIsNext ? 'X' : 'O'; // if this.state.xIsNext true, 'X', if false, 'O'
-    this.setState({
-        squares : squares,
-        xIsNext: !this.state.xIsNext,
-    });
-  }
+  //   constructor(props) {
+  //     super(props);
+  //     this.state = {
+  //       squares: Array(9).fill(null),
+  //       xIsNext: true
+  //     };
+  //   }
 
   renderSquare(i) {
-    return <Square value = { this.state.squares[i]}
-                    onClick = { () => this.handleClick(i)}
-            />;
+    return (
+      <Square
+        value={this.props.squares[i]}
+        onClick={() => this.props.onClick(i)}
+      />
+    );
   }
 
-  // Board's render function
   render() {
-    // const status = 'Next player: ' + (this.state.xIsNext ? 'X' : 'O');
-    const winner = calculateWinner(this.state.squares);
-    let status; // init status to empty variable
-    if (winner) {
-        status = "Winner: " + winner;
-    } else {
-        status = "Next player: " + (this.state.xIsNext ? "X" : "O");
-    }
+    // //const status = "Next player: " + (this.state.xIsNext ? "X" : "O");
+    // const winner = calculateWinner(this.state.squares);
+    // let status;
+    // if (winner) {
+    //   status = "Winner " + winner;
+    // } else {
+    //   status = "Next player: " + (this.state.xIsNext ? "X" : "O");
+    // }
 
+    //<div className="status">{status}</div>
     return (
       <div>
-        <div className="status">{status}</div>
         <div className="board-row">
           {this.renderSquare(0)}
           {this.renderSquare(1)}
@@ -95,46 +93,92 @@ class Board extends React.Component {
 }
 
 class Game extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = {
+      history: [{ squares: Array(9).fill(null) }],
+      stepNumber: 0,
+      xIsNext: true
+    };
+  }
+
+  handleClick(i) {
+    const history = this.state.history.slice(0, this.state.stepNumber + 1);
+    const current = history[history.length - 1];
+    //.slice() create a copy of the squares array to modify instead of modifying the existing array
+    const squares = current.squares.slice();
+    if (calculateWinner(squares) || squares[i]) {
+      return;
+    }
+    squares[i] = this.state.xIsNext ? "X" : "O";
+    this.setState({
+      history: history.concat([{ squares: squares }]),
+      stepNumber: history.length,
+      xIsNext: !this.state.xIsNext
+    });
+  }
+
+  jumpTo(step) {
+    this.setState({
+      stepNumber: step,
+      xIsNext: step % 2 === 0
+    });
+  }
+
   render() {
+    const history = this.state.history;
+    const current = history[this.state.stepNumber];
+    const winner = calculateWinner(current.squares);
+
+    const moves = history.map((step, move) => {
+      const desc = move ? "Go to move # " + move : "Go to game start;";
+      return (
+        <li key={move}>
+          <button onClick={() => this.jumpTo(move)}>{desc}</button>
+        </li>
+      );
+    });
+
+    let status;
+    if (winner) {
+      status = "Winner " + winner;
+    } else {
+      status = "Next player: " + (this.state.xIsNext ? "X" : "O");
+    }
     return (
       <div className="game">
         <div className="game-board">
-          <Board />
+          <Board squares={current.squares} onClick={i => this.handleClick(i)} />
         </div>
         <div className="game-info">
-          <div>{/* status */}</div>
-          <ol>{/* TODO */}</ol>
+          <div>{status}</div>
+          <ol>{moves}</ol>
         </div>
       </div>
     );
   }
 }
 
-
-function calculateWinner(squares) {
-    const lines = [
-        [0, 1, 2],
-        [3, 4, 5],
-        [6, 7, 8],
-        [0, 3, 6],
-        [1, 4, 7],
-        [2, 5, 8],
-        [0, 4, 8],
-        [2, 4, 6],
-    ];
-    for (let i = 0; i < lines.length; i++) {
-        const [a, b, c] = lines[i];
-        if (squares[a] && squares[a] === squares[b] && squares[a] === squares[c]) {
-            return squares[a];
-        }
-    }
-    return null;
-}
-
-
 // ========================================
 
-ReactDOM.render(
-  <Game />,
-  document.getElementById('root')
-);
+ReactDOM.render(<Game />, document.getElementById("root"));
+
+function calculateWinner(squares) {
+  const lines = [
+    [0, 1, 2],
+    [3, 4, 5],
+    [6, 7, 8],
+    [0, 3, 6],
+    [1, 4, 7],
+    [2, 5, 8],
+    [0, 4, 8],
+    [2, 4, 6]
+  ];
+  for (let i = 0; i < lines.length; i++) {
+    const [a, b, c] = lines[i];
+    if (squares[a] && squares[a] === squares[b] && squares[a] === squares[c]) {
+      return squares[a];
+    }
+  }
+  return null;
+}
